@@ -1,6 +1,6 @@
 import { User } from "../entities/User";
 import { MyContext } from "../types";
-import { Arg, Ctx, Field, InputType, Mutation, ObjectType, Resolver } from "type-graphql";
+import { Arg, Ctx, Field, InputType, Mutation, ObjectType, Query, Resolver } from "type-graphql";
 import argon2 from "argon2";
 
 @InputType()
@@ -31,9 +31,23 @@ class USerResponse {
 
 @Resolver()
 export class UserResolver {
+    @Query(() => User, { nullable: true })
+    async me(
+        @Ctx() { req, em }: MyContext
+    ) {
+        //when no user
+        if (!req?.session.userId) {
+            console.log(req?.session)
+            return null
+        }
+        console.log(req?.session)
+        const user = await em.fork().findOne(User, { id: req.session.userId })
+        return user;
+    }
+
     @Mutation(() => USerResponse)
     async register(@Arg('options', () => UsernamePasswordInput) options: UsernamePasswordInput,
-        @Ctx() { em }: MyContext
+        @Ctx() { em, req }: MyContext
     ): Promise<USerResponse> {
         if (options.username.length <= 2) {
             return {
@@ -57,16 +71,19 @@ export class UserResolver {
             await em.persistAndFlush(user)
 
         } catch (error: any) {
-            if(error.code === "23505"){
+            if (error.code === "23505") {
                 return {
-                    errors:[{
-                        field:"username",
-                        message:"username already exist "
+                    errors: [{
+                        field: "username",
+                        message: "username already exist "
                     }]
                 }
             }
             console.log('error', error)
         }
+        //add cookie
+        req.session.userId= user.id;
+
         return { user };
     }
 

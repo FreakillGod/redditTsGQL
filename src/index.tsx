@@ -13,7 +13,7 @@ import session from "express-session";
 
 declare module "express-session" {
   interface SessionData {
-    userId: number | string | undefined;
+    userId: number;
   }
 }
 
@@ -25,19 +25,19 @@ const main = async () => {
   await orm.getMigrator().up();
   const app = express();
 
-  const RedisStore = connectRedis(session);
-  const redisClient = redis.createClient() as any;
-  await redisClient.connect();
-  console.log("redis connected",redisClient.isOpen);
+  // const RedisStore = connectRedis(session);
+  // const redisClient = redis.createClient() as any;
+  // await redisClient.connect();
+  // console.log("redis connected",redisClient.isOpen);
 
   app.use(
     session({
       name: "qid",
-      store: new RedisStore({
-        client: redisClient,
-        disableTouch: true,
-        // disableTTL: true,
-      }),
+      // store: new RedisStore({
+      //   client: redisClient,
+      //   disableTouch: true,
+      //   disableTTL: true,
+      // }),
       cookie: {
         maxAge: 1000 * 60 * 60 * 24 * 365, //1year
         httpOnly: true,
@@ -46,7 +46,7 @@ const main = async () => {
       },
       secret: "hellovikash",
       resave: false,
-      saveUninitialized: false,
+      saveUninitialized: true,
     })
   );
 

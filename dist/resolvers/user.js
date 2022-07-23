@@ -60,7 +60,19 @@ USerResponse = __decorate([
     (0, type_graphql_1.ObjectType)()
 ], USerResponse);
 let UserResolver = class UserResolver {
-    register(options, { em }) {
+    me({ req, em }) {
+        return __awaiter(this, void 0, void 0, function* () {
+            //when no user
+            if (!(req === null || req === void 0 ? void 0 : req.session.userId)) {
+                console.log(req === null || req === void 0 ? void 0 : req.session);
+                return null;
+            }
+            console.log(req === null || req === void 0 ? void 0 : req.session);
+            const user = yield em.fork().findOne(User_1.User, { id: req.session.userId });
+            return user;
+        });
+    }
+    register(options, { em, req }) {
         return __awaiter(this, void 0, void 0, function* () {
             if (options.username.length <= 2) {
                 return {
@@ -94,6 +106,8 @@ let UserResolver = class UserResolver {
                 }
                 console.log('error', error);
             }
+            //add cookie
+            req.session.userId = user.id;
             return { user };
         });
     }
@@ -124,6 +138,10 @@ let UserResolver = class UserResolver {
         });
     }
 };
+__decorate([
+    (0, type_graphql_1.Query)(() => User_1.User, { nullable: true }),
+    __param(0, (0, type_graphql_1.Ctx)())
+], UserResolver.prototype, "me", null);
 __decorate([
     (0, type_graphql_1.Mutation)(() => USerResponse),
     __param(0, (0, type_graphql_1.Arg)('options', () => UsernamePasswordInput)),
