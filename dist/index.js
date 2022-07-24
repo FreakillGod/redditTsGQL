@@ -21,7 +21,11 @@ const type_graphql_1 = require("type-graphql");
 const hello_1 = require("./resolvers/hello");
 const posts_1 = require("./resolvers/posts");
 const user_1 = require("./resolvers/user");
+const cors_1 = __importDefault(require("cors"));
+// import * as redis from "redis";
 const express_session_1 = __importDefault(require("express-session"));
+// import connectRedis from "connect-redis";
+// import { MyContext } from "./types";
 const main = () => __awaiter(void 0, void 0, void 0, function* () {
     const orm = yield core_1.MikroORM.init(mikro_orm_config_1.default);
     yield orm.getMigrator().up();
@@ -30,6 +34,10 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
     // const redisClient = redis.createClient() as any;
     // await redisClient.connect();
     // console.log("redis connected",redisClient.isOpen);
+    app.use((0, cors_1.default)({
+        origin: "http://localhost:3000",
+        credentials: true,
+    }));
     app.use((0, express_session_1.default)({
         name: "qid",
         // store: new RedisStore({
@@ -55,7 +63,10 @@ const main = () => __awaiter(void 0, void 0, void 0, function* () {
         context: ({ req, res }) => ({ em: orm.em, req, res }),
     });
     yield apolloserver.start();
-    apolloserver.applyMiddleware({ app });
+    apolloserver.applyMiddleware({
+        app,
+        cors: { origin: false },
+    });
     // app.get("/",(_,res)=>{
     //   res.send("ehllo")
     // })

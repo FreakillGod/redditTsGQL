@@ -8,7 +8,8 @@ import { buildSchema } from "type-graphql";
 import { HelloResolver } from "./resolvers/hello";
 import { PostResolver } from "./resolvers/posts";
 import { UserResolver } from "./resolvers/user";
-import * as redis from "redis";
+import cors from "cors";
+// import * as redis from "redis";
 import session from "express-session";
 
 declare module "express-session" {
@@ -17,8 +18,8 @@ declare module "express-session" {
   }
 }
 
-import connectRedis from "connect-redis";
-import { MyContext } from "./types";
+// import connectRedis from "connect-redis";
+// import { MyContext } from "./types";
 
 const main = async () => {
   const orm = await MikroORM.init(microConfig);
@@ -29,6 +30,13 @@ const main = async () => {
   // const redisClient = redis.createClient() as any;
   // await redisClient.connect();
   // console.log("redis connected",redisClient.isOpen);
+
+  app.use(
+    cors({
+      origin: "http://localhost:3000",
+      credentials: true,
+    })
+  );
 
   app.use(
     session({
@@ -55,12 +63,15 @@ const main = async () => {
       resolvers: [HelloResolver, PostResolver, UserResolver],
       validate: false,
     }),
-    context: ({ req, res }): MyContext => ({ em: orm.em, req, res }),
+    context: ({ req, res }) => ({ em: orm.em, req, res }),
   });
 
   await apolloserver.start();
 
-  apolloserver.applyMiddleware({ app });
+  apolloserver.applyMiddleware({
+    app,
+    cors: { origin: false },
+  });
 
   // app.get("/",(_,res)=>{
   //   res.send("ehllo")
