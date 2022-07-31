@@ -1,5 +1,5 @@
 import { MikroORM } from "@mikro-orm/core";
-import { __prod__ } from "./constants";
+import { COOKIE_NAME, __prod__ } from "./constants";
 // import { Post } from "./entities/Post";
 import express from "express";
 import microConfig from "./mikro-orm.config";
@@ -40,7 +40,7 @@ const main = async () => {
 
   app.use(
     session({
-      name: "qid",
+      name: COOKIE_NAME,
       // store: new RedisStore({
       //   client: redisClient,
       //   disableTouch: true,
@@ -51,6 +51,7 @@ const main = async () => {
         httpOnly: true,
         sameSite: "lax", //protecting csrf
         // secure:__prod__  //cookie only works in https
+        secure:__prod__
       },
       secret: "hellovikash",
       resave: false,

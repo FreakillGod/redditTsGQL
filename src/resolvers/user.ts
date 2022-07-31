@@ -2,6 +2,8 @@ import { User } from "../entities/User";
 import { MyContext } from "../types";
 import { Arg, Ctx, Field, InputType, Mutation, ObjectType, Query, Resolver } from "type-graphql";
 import argon2 from "argon2";
+import { EntityManager } from "@mikro-orm/postgresql"
+import { COOKIE_NAME } from "../constants";
 
 @InputType()
 export class UsernamePasswordInput {
@@ -66,10 +68,17 @@ export class UserResolver {
             }
         }
         const hashedPass = await argon2.hash(options.password)
-        const user = em.create(User, { username: options.username, password: hashedPass })
+        // const user = em.create(User, { username: options.username, password: hashedPass })  //using orm
+        let user;
         try {
-            await em.persistAndFlush(user)
-
+            const result = await (em as EntityManager).createQueryBuilder(User).getKnexQuery().insert({             // using querybuilder of nest js
+                username: options.username,
+                password: hashedPass,
+                updated_at: new Date(),
+                create_at: new Date(),
+            }).returning("*");
+            user = result[0];
+            // await em.persistAndFlush(user);
         } catch (error: any) {
             if (error.code === "23505") {
                 return {
@@ -82,7 +91,7 @@ export class UserResolver {
             console.log('error', error)
         }
         //add cookie
-        req.session.userId= user.id;
+        req.session.userId = user.id;
 
         return { user };
     }
@@ -110,11 +119,26 @@ export class UserResolver {
             }
         }
 
-        req.session.userId= user.id;
+        req.session.userId = user.id;
 
         return {
             user
         };
+    }
+
+    @Mutation(() => Boolean)
+    logOut(
+        @Ctx() { req, res }: MyContext
+    ) {
+        return new Promise(resolve => req.session.destroy(err => {
+            console.log("logout is called")
+            res.clearCookie(COOKIE_NAME, { domain: "localhost", path: "/", httpOnly:true, sameSite:"lax"})
+            if (err) {
+                console.log("err",err)
+                return resolve(false)
+            }
+            resolve(true)
+        }))
     }
 
 }

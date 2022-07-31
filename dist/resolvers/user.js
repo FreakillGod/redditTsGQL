@@ -25,6 +25,7 @@ exports.UserResolver = exports.UsernamePasswordInput = void 0;
 const User_1 = require("../entities/User");
 const type_graphql_1 = require("type-graphql");
 const argon2_1 = __importDefault(require("argon2"));
+const constants_1 = require("../constants");
 let UsernamePasswordInput = class UsernamePasswordInput {
 };
 __decorate([
@@ -91,9 +92,17 @@ let UserResolver = class UserResolver {
                 };
             }
             const hashedPass = yield argon2_1.default.hash(options.password);
-            const user = em.create(User_1.User, { username: options.username, password: hashedPass });
+            // const user = em.create(User, { username: options.username, password: hashedPass })  //using orm
+            let user;
             try {
-                yield em.persistAndFlush(user);
+                const result = yield em.createQueryBuilder(User_1.User).getKnexQuery().insert({
+                    username: options.username,
+                    password: hashedPass,
+                    updated_at: new Date(),
+                    create_at: new Date(),
+                }).returning("*");
+                user = result[0];
+                // await em.persistAndFlush(user);
             }
             catch (error) {
                 if (error.code === "23505") {
@@ -137,6 +146,17 @@ let UserResolver = class UserResolver {
             };
         });
     }
+    logOut({ req, res }) {
+        return new Promise(resolve => req.session.destroy(err => {
+            console.log("logout is called");
+            res.clearCookie(constants_1.COOKIE_NAME, { domain: "localhost", path: "/", httpOnly: true, sameSite: "lax" });
+            if (err) {
+                console.log("err", err);
+                return resolve(false);
+            }
+            resolve(true);
+        }));
+    }
 };
 __decorate([
     (0, type_graphql_1.Query)(() => User_1.User, { nullable: true }),
@@ -152,6 +172,10 @@ __decorate([
     __param(0, (0, type_graphql_1.Arg)('options', () => UsernamePasswordInput)),
     __param(1, (0, type_graphql_1.Ctx)())
 ], UserResolver.prototype, "login", null);
+__decorate([
+    (0, type_graphql_1.Mutation)(() => Boolean),
+    __param(0, (0, type_graphql_1.Ctx)())
+], UserResolver.prototype, "logOut", null);
 UserResolver = __decorate([
     (0, type_graphql_1.Resolver)()
 ], UserResolver);
